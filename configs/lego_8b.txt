@@ -1,0 +1,37 @@
+expname = lego_MLP_only_patch_8b_w_message_5_w_img_1_p_150_whole_160_colorcat_DDP_360_f
+basedir = ./logs
+datadir = ./data/nerf_synthetic/lego
+dataset_type = blender
+
+no_batching = True
+
+w_message = 5.0
+w_img = 1.0
+
+use_viewdirs = True
+white_bkgd = True
+lrate_decay = 500
+
+N_samples = 32
+N_importance = 32
+N_rand = 1024
+
+precrop_iters = 0
+precrop_frac = 1
+
+raw_noise_std = 0
+perturb = 1.0
+factor_res = 5
+
+N_iters = 400000
+i_testset = 1
+i_weights = 1000
+i_testset_out = 1
+i_print = 100
+
+message_dim = 8
+angle_range = 360.0
+decoder_blocks = 8
+
+patch_size = 150
+pretrained_model = ./models/200000_lego.tar
