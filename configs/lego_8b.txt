@@ -24,9 +24,9 @@ perturb = 1.0
 factor_res = 5
 
 N_iters = 400000
-i_testset = 1
+i_testset = 10000
 i_weights = 1000
-i_testset_out = 1
+i_testset_out = 10000
 i_print = 100
 
 message_dim = 8
