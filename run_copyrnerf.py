@@ -191,7 +191,7 @@ def render_whole_image(render_poses, message, hwf, K, chunk, patch_size, render_
         print(i, time.time() - t)
         t = time.time()
 
-        message_i =message[1,:]
+        message_i =message[0,:]
 
         pose = c2w[:3, :4].to(device)
         rays_o, rays_d = get_rays(H, W, K, pose)
@@ -232,7 +232,7 @@ def render_whole_image(render_poses, message, hwf, K, chunk, patch_size, render_
 
         if savedir is not None:
             rgb8 = to8b(rgbs[-1])
-            filename = os.path.join(savedir, 'lego-{:d}.png'.format(i))
+            filename = os.path.join(savedir, '{:03d}_render.png'.format(i))
             imageio.imwrite(filename, rgb8)
 
             rgb8 = to8b(rgbs_target[-1])
@@ -634,6 +634,7 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0.0, white_bkgd=False, pytest
             noise = torch.Tensor(noise)
 
     alpha = raw2alpha(raw[..., 6] + noise, dists)  # [N_rays, N_samples]
+    alpha = torch.where(torch.logical_or(torch.isnan(alpha), torch.isinf(alpha)), torch.full_like(alpha, 0), alpha)
     # weights = alpha * tf.math.cumprod(1.-alpha + 1e-10, -1, exclusive=True)
     weights = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)).to(alpha.device), 1. - alpha + 1e-10], -1), -1)[:, :-1]
     # rgb
@@ -722,7 +723,7 @@ def render_rays(ray_batch,
         upper = torch.cat([mids, z_vals[..., -1:]], -1)
         lower = torch.cat([z_vals[..., :1], mids], -1)
         # stratified samples in those intervals
-        t_rand = torch.randn(z_vals.shape).to(lower.device)*0.2
+        t_rand = torch.randn(z_vals.shape).to(lower.device) * 0.2
 
         # Pytest, overwrite u with numpy's fixed random numbers
         if pytest:
@@ -855,7 +856,7 @@ def config_parser():
     # dataset options
     parser.add_argument("--dataset_type", type=str, default='llff',
                         help='options: llff / blender / deepvoxels')
-    parser.add_argument("--testskip", type=int, default=8,
+    parser.add_argument("--testskip", type=int, default=1,
                         help='will load 1/N images from test/val sets, useful for large datasets like deepvoxels')
 
     ## deepvoxels flags
@@ -978,7 +979,7 @@ def train(rank, world_size):
         images, poses, render_poses, hwf, i_split = load_blender_data(args.datadir, args.factor_res, args.testskip)
         print('Loaded blender', images.shape, render_poses.shape, hwf, args.datadir)
         i_train, i_val, i_test = i_split
-
+        
         near = 2.
         far = 6.
 
@@ -1028,8 +1029,9 @@ def train(rank, world_size):
             [0, 0, 1]
         ])
 
-    if args.render_test:
-        render_poses = np.array(poses[i_test])
+    render_poses = np.array(poses[i_test])
+#     if args.render_test:
+#         render_poses = np.array(poses[i_test])
 
     # Create log dir and copy the config file
     basedir = args.basedir
@@ -1112,17 +1114,16 @@ def train(rank, world_size):
                                        render_kwargs_test, device,
                                        savedir=testsavedir, render_factor=args.render_factor, encoder=encoder_net,
                                        decoder=decoder_net)
-            rgbs = re['rgbs']
-            imageio.mimwrite(os.path.join(testsavedir, 'video.mp4'), to8b(rgbs), fps=30, quality=8)
-            testsavedir = os.path.join(basedir, expname,
-                                           'renderonly_{}_{:06d}'.format('test' if args.render_test else 'path', start))
-            os.makedirs(testsavedir, exist_ok=True)
-            print('test poses shape', poses_test.shape)
 
-            _ = render_path(poses_test, message_test, hwf, K, args.chunk, args.patch_size,
-                                render_kwargs_test, device,
-                                savedir=testsavedir, render_factor=args.render_factor, encoder=encoder_net,
-                                decoder=decoder_net)
+#             testsavedir = os.path.join(basedir, expname,
+#                                            'renderonly_{}_{:06d}'.format('test' if args.render_test else 'path', start))
+#             os.makedirs(testsavedir, exist_ok=True)
+#             print('test poses shape', poses_test.shape)
+
+#             _ = render_path(poses_test, message_test, hwf, K, args.chunk, args.patch_size,
+#                                 render_kwargs_test, device,
+#                                 savedir=testsavedir, render_factor=args.render_factor, encoder=encoder_net,
+#                                 decoder=decoder_net)
 
             print('Done rendering', testsavedir)
             return
@@ -1195,9 +1196,10 @@ def train(rank, world_size):
         perc_loss = img2mse(vggloss(rgb_patch), vggloss(target_s_patch))
         if noise_type is not None:
             rgb_patch = T_Noise(rgb_patch)
+            
         decoded_message = decoder_net(rgb_patch)
-        # decoded_message = decoded_message[0, :]
         message_loss = F.binary_cross_entropy(decoded_message, message)
+
         # trans = extras['raw'][..., -1]
         
         loss = w_img * img_loss + w_message * message_loss + 0.01 * perc_loss
@@ -1208,7 +1210,6 @@ def train(rank, world_size):
         #     img_loss0 = img2mse(extras['rgb0'], target_s)
         #     loss = loss + img_loss0
         #     psnr0 = mse2psnr(img_loss0)
-
         loss.backward()
         optimizer_encoder.step()
         optimizer_decoder.step()
