@@ -1,0 +1,31 @@
+expname = fern_MLP_only_patch_32b
+basedir = ./logs
+datadir = ./data/nerf_llff_data/fern
+dataset_type = llff
+
+factor = 16
+llffhold = 8
+
+N_rand = 1024
+N_samples = 32
+N_importance = 32
+
+w_message = 5.0
+w_img = 1.0
+
+use_viewdirs = True
+raw_noise_std = 0
+
+no_batching = True
+
+N_iters = 400000
+i_testset = 10000
+i_weights = 1000
+i_testset_out = 10000
+i_print = 100
+
+message_dim = 32
+decoder_blocks = 8
+
+patch_size = 150
+pretrained_model = ./models/200000_fern.tar
