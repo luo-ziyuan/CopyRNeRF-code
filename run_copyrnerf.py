@@ -1115,15 +1115,15 @@ def train(rank, world_size):
                                        savedir=testsavedir, render_factor=args.render_factor, encoder=encoder_net,
                                        decoder=decoder_net)
 
-#             testsavedir = os.path.join(basedir, expname,
-#                                            'renderonly_{}_{:06d}'.format('test' if args.render_test else 'path', start))
-#             os.makedirs(testsavedir, exist_ok=True)
-#             print('test poses shape', poses_test.shape)
+            testsavedir = os.path.join(basedir, expname,
+                                           'renderonly_{}_{:06d}'.format('test' if args.render_test else 'path', start))
+            os.makedirs(testsavedir, exist_ok=True)
+            print('test poses shape', poses_test.shape)
 
-#             _ = render_path(poses_test, message_test, hwf, K, args.chunk, args.patch_size,
-#                                 render_kwargs_test, device,
-#                                 savedir=testsavedir, render_factor=args.render_factor, encoder=encoder_net,
-#                                 decoder=decoder_net)
+            _ = render_path(poses_test, message_test, hwf, K, args.chunk, args.patch_size,
+                                render_kwargs_test, device,
+                                savedir=testsavedir, render_factor=args.render_factor, encoder=encoder_net,
+                                decoder=decoder_net)
 
             print('Done rendering', testsavedir)
             return
